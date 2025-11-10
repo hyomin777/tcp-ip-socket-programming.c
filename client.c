@@ -8,23 +8,41 @@
 #include <netinet/in.h>
 #include <pthread.h>
 
-#define BUFFSIZE 100
-#define NAMESIZE 20
+#define BUFFSIZE 1000
+#define IDSIZE 100
 
 
-char msg[BUFFSIZE];
+void* rcv(void* arg){
+	
+	printf("rcv thread created\n");
+	int sock = (int)arg;
+	char buff[500];
+	int len;
+
+	while(1) {
+		len = read(sock, buff, sizeof(buff));
+
+		if(len == -1) {
+			printf("sock close\n");
+			break;
+		}
+		printf("%s", buff);
+	}
+
+	pthread_exit(0);
+	return 0;
+}
+
 
 int main(int argc, char** argv) {
 
 	int sock;
 	struct sockaddr_in serv_addr;
 	
-	pthread_t snd_thread;
 	pthread_t rcv_thread;
-
 	void* thread_result;
 
-	char id[100];
+	char id[IDSIZE];
 
 	if(argc < 3) {
 		printf("You have to enter port number and id\n");
@@ -52,15 +70,20 @@ int main(int argc, char** argv) {
 		printf("connection success\n");
 	}
 
-	sprintf(msg, "[%s] : hello world\n", id);
+	pthread_create(&rcv_thread, NULL, rcv, (void*)sock);
 
-	printf("while before\n");
+	char chat[100];
+	char msg[BUFFSIZE];
+
 	while(1) {
 		printf("send: %s", msg);
+		fgets(chat, sizeof(chat), stdin);
+		sprintf(msg, "[%s]: %s\n", id, chat);
+		printf("send; %s", msg);
 		write(sock, msg, strlen(msg)+1);
 		sleep(1);
 	}
-	printf("while end\n");
+
 	close(sock);
 	return 0;
 }
